@@ -3,10 +3,7 @@
 """
 repo_to_pdf.py
 전체 레포지토리 소스코드를 하나의 PDF로 변환하는 Python 스크립트
-Windows, macOS, Linux 모두 지원
-
-필수 패키지 설치:
-    pip install pygments reportlab PyPDF2
+Windows, macOS, Linux 모두 지원 + 필수 패키지 자동 설치
 
 사용법:
     python repo_to_pdf.py [레포지토리_경로] [출력파일.pdf]
@@ -14,34 +11,91 @@ Windows, macOS, Linux 모두 지원
 
 import os
 import sys
+import subprocess
 import argparse
 from pathlib import Path
 from datetime import datetime
 from typing import List, Tuple, Optional
 
-try:
-    from pygments import highlight
-    from pygments.lexers import get_lexer_for_filename, get_lexer_by_name, TextLexer
-    from pygments.formatters import HtmlFormatter
-    from pygments.util import ClassNotFound
-except ImportError:
-    print("오류: pygments가 설치되어 있지 않습니다.")
-    print("설치: pip install pygments")
-    sys.exit(1)
+# ============================================================================
+# 자동 패키지 설치
+# ============================================================================
 
-try:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_LEFT
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Preformatted
-    from reportlab.lib import colors
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-except ImportError:
-    print("오류: reportlab이 설치되어 있지 않습니다.")
-    print("설치: pip install reportlab")
-    sys.exit(1)
+REQUIRED_PACKAGES = {
+    'pygments': 'pygments',
+    'reportlab': 'reportlab',
+    'PyPDF2': 'PyPDF2',
+}
+
+def check_and_install_packages():
+    """필수 패키지 확인 및 자동 설치"""
+    missing_packages = []
+    
+    for import_name, pip_name in REQUIRED_PACKAGES.items():
+        try:
+            __import__(import_name)
+        except ImportError:
+            missing_packages.append(pip_name)
+    
+    if not missing_packages:
+        return True
+    
+    print("=" * 50)
+    print("  필수 패키지 설치")
+    print("=" * 50)
+    print(f"누락된 패키지: {', '.join(missing_packages)}")
+    print()
+    
+    # 자동 설치 시도
+    try:
+        # 사용자 확인 (터미널에서 실행 중인 경우)
+        if sys.stdin.isatty():
+            response = input("자동으로 설치할까요? (Y/n): ").strip().lower()
+            if response and response != 'y':
+                print("\n설치가 취소되었습니다.")
+                print(f"수동 설치: pip install {' '.join(missing_packages)}")
+                sys.exit(1)
+        
+        print("\n패키지 설치 중...")
+        
+        for package in missing_packages:
+            print(f"  {package} 설치 중...")
+            subprocess.check_call(
+                [sys.executable, '-m', 'pip', 'install', package, '--quiet'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            print(f"  {package} ✓")
+        
+        print("\n패키지 설치 완료!")
+        print()
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"\n오류: 패키지 설치 실패")
+        print(f"수동 설치를 시도하세요: pip install {' '.join(missing_packages)}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n오류: {e}")
+        sys.exit(1)
+
+# 패키지 설치 확인 (import 전에 실행)
+check_and_install_packages()
+
+# 이제 패키지 import
+from pygments import highlight
+from pygments.lexers import get_lexer_for_filename, get_lexer_by_name, TextLexer
+from pygments.formatters import HtmlFormatter
+from pygments.util import ClassNotFound
+
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_LEFT
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Preformatted
+from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 try:
     from PyPDF2 import PdfMerger
@@ -397,9 +451,9 @@ def main():
         print(f"오류: 디렉토리가 아닙니다: {repo_path}")
         sys.exit(1)
     
-    print("=" * 50)
-    print("  Repository to PDF Converter")
-    print("=" * 50)
+    print("╔" + "═" * 48 + "╗")
+    print("║   Repository to PDF Converter v2.0            ║")
+    print("╚" + "═" * 48 + "╝")
     print(f"소스 디렉토리: {repo_path}")
     print(f"출력 파일: {output_path}")
     print()
@@ -412,7 +466,7 @@ def main():
         print("오류: 변환할 소스 파일을 찾을 수 없습니다.")
         sys.exit(1)
     
-    print(f"발견된 파일: {len(files)}개")
+    print(f"  발견된 파일: {len(files)}개")
     print()
     
     # PDF 생성
@@ -422,8 +476,9 @@ def main():
     
     print()
     print()
-    print("=" * 50)
-    print(f"  완료!")
+    print("╔" + "═" * 48 + "╗")
+    print("║              변환 완료!                        ║")
+    print("╚" + "═" * 48 + "╝")
     print(f"  출력 파일: {output_path}")
     
     # 파일 크기 표시
@@ -433,7 +488,7 @@ def main():
     else:
         size_str = f"{output_size / 1024:.1f} KB"
     print(f"  파일 크기: {size_str}")
-    print("=" * 50)
+    print(f"  총 파일 수: {len(files)}개")
 
 
 if __name__ == '__main__':
