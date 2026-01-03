@@ -1,0 +1,15 @@
+# --- server-host-html.ps1 ---
+powershell -ExecutionPolicy Bypass -File server-host-html.ps1
+
+
+# --- server-host-html-expanded.ps1 ---
+# localhost
+powershell -ExecutionPolicy Bypass -File server-host-html-expanded.ps1
+
+# allow LAN
+# CMD를 관리자 권한으로 실행 후
+powershell -ExecutionPolicy Bypass -File server-host-html-expanded.ps1
+# http://192.168.x.x:3000
+
+# 방화벽 설정 - 관리자 권한 CMD에서 실행
+netsh advfirewall firewall add rule name="PowerShell Web Server" dir=in action=allow protocol=tcp localport=3000
